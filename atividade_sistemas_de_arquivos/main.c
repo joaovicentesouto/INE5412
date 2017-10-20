@@ -9,12 +9,12 @@ typedef struct
     float salario;
 } funcionario;
 
-/* Offsets */ 
+/* Offsets */
 #define ID 0
 #define NOME sizeof(unsigned int)
 #define SEXO NOME + (sizeof(char) * 256)
 #define SALARIO SEXO + sizeof(char)
-#define FUNCIONARIO SEXO + sizeof(float)
+#define FUNCIONARIO SALARIO + sizeof(float)
 
 /* Global variables */
 FILE *file;
@@ -26,13 +26,13 @@ typedef int bool;
 
 /* Foward definitions: operations */
 void insert();
-void delete();
-void modify();
+void delete ();
+void averageSalaryForSex();
 void compress();
 
 /* Foward definitions: helpers */
 int offsetId(unsigned int id);
-void question(char * quest, char * dest);
+void question(char *quest, char *dest);
 
 int main(int argc, char *argv[])
 {
@@ -58,11 +58,15 @@ int main(int argc, char *argv[])
         break;
 
     case 1:
-        //remove(file);
+        delete ();
+        break;
+
+    case 2:
+        averageSalaryForSex();
         break;
 
     default:
-        printf("Default...\n");
+        printf("Do nothing...\n");
     }
 
     return 0;
@@ -86,42 +90,42 @@ int offsetId(unsigned int id)
     {
         fread(&aux_id, sizeof(unsigned int), 1, file);
 
-        printf("\nOff: %d ... Id: %u", offset, aux_id);
-        printf("\nId: %u ... offId: %u", id, aux_id);
+        printf("Off: %d ... Id: %u\n", offset, aux_id);
         if (id == aux_id)
             return offset;
 
-        fseek(file, FUNCIONARIO, SEEK_CUR);
+        fseek(file, (FUNCIONARIO-sizeof(float)+3), SEEK_CUR);
         offset = ftell(file);
-
     }
 
     return -1;
 }
 
-void question(char * quest, char * dest)
+void question(char *quest, char *dest)
 {
-    printf("\n%s: ", quest);
+    printf("%s: ", quest);
     scanf("%s", dest);
 }
 
 void insert()
 {
     char line[256];
-    int id = -1, offset;
+    int id = -1, offset = 0;
     funcionario new_funcionario;
-    
+
     question("Informe o id", line);
 
     do
     {
         id = atoi(line);
-        offset = offsetId(id);
+
+        if (id != 0)
+            offset = offsetId(id);
 
         if (offset == -1)
             break;
 
-        question("Id inválido, informe um Id diferente", line);
+        question("\nId inválido, informe um Id diferente", line);
     } while (true);
 
     new_funcionario.id = id;
@@ -139,7 +143,6 @@ void insert()
     } while (true);
 
     new_funcionario.sexo = line[0];
-    
 
     question("Informe o salário", line);
     new_funcionario.salario = atof(line);
@@ -148,4 +151,77 @@ void insert()
     fwrite(&new_funcionario, sizeof(funcionario), 1, file);
 
     printf("\nFuncionário inserido com sucesso.\n");
+}
+
+void delete ()
+{
+    char line[256];
+    int id = -1, offset = -1;
+
+    question("Informe o id", line);
+    id = atoi(line);
+
+    if (id > 0)
+    {
+        offset = offsetId(id);
+
+        if (offset >= 0)
+        {
+            unsigned int removing = 0;
+
+            fseek(file, offset, SEEK_SET);
+            fwrite(&removing, sizeof(unsigned int), 1, file);
+
+            printf("Funcionário removido com sucesso.\n");
+            return;
+        }
+    }
+
+    printf("Id inválido.\n");
+}
+
+void averageSalaryForSex()
+{
+    char sex = '\0', func_sex;
+    int sum = 0, amount = 0, end_of_file = 0, offset = 0;
+    float salary = 0;
+
+    question("Informe o sexo para obter a média dos salário", &sex);
+
+    while (!(sex == 'F' || sex == 'M'))
+    {
+        question("Sexo inválido, informe novamente", &sex);
+    }
+
+    /* Size of file */
+    fseek(file, 0, SEEK_END);
+    end_of_file = ftell(file);
+    printf("Final: %d\n\n", end_of_file);
+
+    /* First value */
+    fseek(file, 0, SEEK_SET);
+
+    while (offset < end_of_file)
+    {
+        offset = ftell(file);
+
+        fseek(file, SEXO, SEEK_CUR);
+        fread(&func_sex, sizeof(char), 1, file);
+        printf("SEX: %c\n", func_sex);
+
+        if (func_sex == sex)
+        {
+            fseek(file, +5, SEEK_CUR);
+            fread(&salary, sizeof(float), 1, file);
+            fseek(file, (-sizeof(float))-5, SEEK_CUR);
+
+            amount++;
+            printf("Off: %d - Sex: %c - Sal: %f\n", offset, func_sex, salary);
+        }
+
+        fseek(file, (FUNCIONARIO - SEXO), SEEK_CUR);
+        offset = ftell(file);
+    }
+
+    printf("Quant: %d", amount);
 }
