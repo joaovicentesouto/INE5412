@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* Struct for manipulation */
 typedef struct
@@ -11,9 +13,9 @@ typedef struct
 
 /* Offsets */
 #define ID 0
-#define NOME sizeof(unsigned int)
+#define NOME ID + sizeof(unsigned int)
 #define SEXO NOME + (sizeof(char) * 256)
-#define SALARIO SEXO + sizeof(char)
+#define SALARIO SEXO + sizeof(char) + 3
 #define FUNCIONARIO SALARIO + sizeof(float)
 
 /* Global variables */
@@ -69,6 +71,8 @@ int main(int argc, char *argv[])
         printf("Do nothing...\n");
     }
 
+    fclose(file);
+
     return 0;
 }
 
@@ -88,13 +92,13 @@ int offsetId(unsigned int id)
 
     while (offset < end_of_file)
     {
-        fread(&aux_id, sizeof(unsigned int), 1, file);
+        fread(((void *)(&aux_id)), sizeof(unsigned int), 1, file);
 
         printf("Off: %d ... Id: %u\n", offset, aux_id);
         if (id == aux_id)
             return offset;
 
-        fseek(file, (FUNCIONARIO-sizeof(float)+3), SEEK_CUR);
+        fseek(file, (FUNCIONARIO - sizeof(float) + 3), SEEK_CUR);
         offset = ftell(file);
     }
 
@@ -146,9 +150,10 @@ void insert()
 
     question("Informe o salário", line);
     new_funcionario.salario = atof(line);
+    printf("\nsalario do fun inserido: %f *****\n", new_funcionario.salario);
 
     fseek(file, 0, SEEK_END);
-    fwrite(&new_funcionario, sizeof(funcionario), 1, file);
+    fwrite(((void *)(&new_funcionario)), sizeof(funcionario), 1, file);
 
     printf("\nFuncionário inserido com sucesso.\n");
 }
@@ -170,7 +175,7 @@ void delete ()
             unsigned int removing = 0;
 
             fseek(file, offset, SEEK_SET);
-            fwrite(&removing, sizeof(unsigned int), 1, file);
+            fwrite(((void *)(&removing)), sizeof(unsigned int), 1, file);
 
             printf("Funcionário removido com sucesso.\n");
             return;
@@ -206,14 +211,14 @@ void averageSalaryForSex()
         offset = ftell(file);
 
         fseek(file, SEXO, SEEK_CUR);
-        fread(&func_sex, sizeof(char), 1, file);
+        fread(((void *)(&func_sex)), sizeof(char), 1, file);
         printf("SEX: %c\n", func_sex);
 
         if (func_sex == sex)
         {
             fseek(file, +5, SEEK_CUR);
-            fread(&salary, sizeof(float), 1, file);
-            fseek(file, (-sizeof(float))-5, SEEK_CUR);
+            fread(((void *)(&salary)), sizeof(float), 1, file);
+            fseek(file, (-sizeof(float)) - 5, SEEK_CUR);
 
             amount++;
             printf("Off: %d - Sex: %c - Sal: %f\n", offset, func_sex, salary);
