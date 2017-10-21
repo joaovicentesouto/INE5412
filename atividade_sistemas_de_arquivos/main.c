@@ -31,7 +31,7 @@ void insert();
 void delete ();
 void averageSalaryForSex();
 void dataToText();
-void compress();
+void compress(char * arq);
 
 /* Foward definitions: helpers */
 int offsetId(unsigned int id);
@@ -72,11 +72,16 @@ int main(int argc, char *argv[])
         dataToText();
         break;
 
+    case 4:
+        compress(argv[1]);
+        break;
+
     default:
         printf("Do nothing...\n");
     }
 
-    fclose(file);
+    if (option != 4)
+        fclose(file);
 
     return 0;
 }
@@ -278,4 +283,44 @@ void dataToText()
     }
 
     printf("Dados exportados com sucesso.\n");
+}
+
+void compress(char * arq)
+{
+    FILE * new_file;
+    funcionario aux;
+    int offset = 0, end_of_file = 0;
+
+    if ((new_file = fopen("file_aux", "w+b")) == NULL)
+    {
+        printf("Erro ao abrir/criar o arquivo.\n");
+        return ;
+    }
+
+    /* Size of file */
+    fseek(file, 0, SEEK_END);
+    end_of_file = ftell(file);
+
+    fseek(file, 0, SEEK_SET);
+    offset = ftell(file);
+    
+    while (offset < end_of_file)
+    {
+        fread(&aux, sizeof(funcionario), 1, file);
+
+        if (aux.id)
+        {
+            printf("Id: %d - Nome: %s - Sexo: %c - Salario: %f\n", \
+                    aux.id, aux.nome, aux.sexo, aux.salario);
+            fwrite(&aux, sizeof(funcionario), 1, new_file);
+        }
+
+        offset = ftell(file);
+    }
+
+    fclose(file);
+    fclose(new_file);
+
+    remove(arq);
+    rename("file_aux", arq);
 }
