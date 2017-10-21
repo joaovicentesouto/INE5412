@@ -1,4 +1,3 @@
-#define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -164,7 +163,7 @@ void insert()
     /* To get a name with empty spaces between the words */
     char *x = NULL;
     size_t len = 0;
-    puts("Informe o nome");
+    puts("Informe o nome:");
     getline(&x, &len, stdin); // Don't take the name reading only one time
     getline(&x, &len, stdin);
     copy_strings_without_new_line(new_func.nome, x);
@@ -259,8 +258,9 @@ void averageSalaryForSex()
         fseek(file, offset + FUNCIONARIO, SEEK_SET);
         offset = ftell(file);
     }
-
-    printf("Média dos salários do sexo %c: %f\n", sex, (sum / amount));
+    
+    float average = amount > 0? sum / amount : 0;
+    printf("Média dos salários do sexo %c: %f\n", sex, average);
 }
 
 void dataToText()
