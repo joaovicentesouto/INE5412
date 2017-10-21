@@ -1,6 +1,20 @@
+#define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/**
+  *  Os argumentos: ./exec dados opção
+  *  Onde:
+  *     - exec: arquivo executável
+  *     - dados: arquivo com os dados dos funcionário
+  *     - opção: um número entre 0 e 4.
+  *         - 0: inserir funcionário;
+  *         - 1: remover funcionário;
+  *         - 2: média dos salários (por sexo);
+  *         - 3: dados exportados como texto;
+  *         - 4: comprimir (remover efetivamente os funcionário).
+  */
 
 /* Struct for manipulation */
 typedef struct
@@ -21,22 +35,19 @@ typedef struct
 /* Global variables */
 FILE *file;
 
-/* Auxiliary types */
-typedef int bool;
-#define true 1
-#define false 0
-
 /* Foward definitions: operations */
 void insert();
 void delete ();
 void averageSalaryForSex();
 void dataToText();
-void compress(char * arq);
+void compress(char *arq);
 
 /* Foward definitions: helpers */
 int offsetId(unsigned int id);
 void question(char *quest, char *dest);
+void copy_strings_without_new_line(char * dest, char * src);
 
+/* Main */
 int main(int argc, char *argv[])
 {
 
@@ -77,7 +88,7 @@ int main(int argc, char *argv[])
         break;
 
     default:
-        printf("Do nothing...\n");
+        printf("Opções:\n0: inserir\n1:remover\n2:média\n3:texto\n4:comprimir\n");
     }
 
     if (option != 4)
@@ -86,13 +97,26 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+void question(char *quest, char *dest)
+{
+    printf("%s: ", quest);
+    scanf("%s", dest);
+}
+
+void copy_strings_without_new_line(char * dest, char * src)
+{
+    int i = 0;
+    while (src[i] != '\0' && src[i] != '\n' && i < 256)
+    {
+        dest[i] = src[i];
+        i++;
+    }
+}
+
 int offsetId(unsigned int id)
 {
     fseek(file, 0, SEEK_END);
     int end_of_file = ftell(file);
-
-    if (!end_of_file)
-        return -1;
 
     unsigned int aux_id = -1;
     int offset = 0;
@@ -104,7 +128,6 @@ int offsetId(unsigned int id)
     {
         fread(&aux_id, sizeof(unsigned int), 1, file);
 
-        printf("Off: %d ... Id: %u\n", offset, aux_id);
         if (id == aux_id)
             return offset;
 
@@ -113,12 +136,6 @@ int offsetId(unsigned int id)
     }
 
     return -1;
-}
-
-void question(char *quest, char *dest)
-{
-    printf("%s: ", quest);
-    scanf("%s", dest);
 }
 
 void insert()
@@ -142,10 +159,16 @@ void insert()
         }
 
         question("\nId inválido, informe um Id diferente", line);
-    } while (true);
+    } while (1);
 
-    question("Informe o nome", line);
-    strcpy(new_func.nome, line);
+    /* To get a name with empty spaces between the words */
+    char *x = NULL;
+    size_t len = 0;
+    puts("Informe o nome");
+    getline(&x, &len, stdin); // Don't take the name reading only one time
+    getline(&x, &len, stdin);
+    copy_strings_without_new_line(new_func.nome, x);
+    free(x);
 
     question("Informe o sexo", line);
     do
@@ -157,7 +180,7 @@ void insert()
         }
 
         question("Sexo inválido, informe novamente", line);
-    } while (true);
+    } while (1);
 
     question("Informe o salário", line);
     new_func.salario = atof(line);
@@ -198,6 +221,7 @@ void delete ()
 void averageSalaryForSex()
 {
     char sex = '\0', func_sex = '\0';
+    unsigned int id = 0;
     int amount = 0, end_of_file = 0, offset = 0;
     float sum = 0, salary = 0;
 
@@ -218,10 +242,12 @@ void averageSalaryForSex()
 
     while (offset < end_of_file)
     {
+        fread(&id, sizeof(unsigned int), 1, file);
+
         fseek(file, offset + SEXO, SEEK_SET);
         fread(&func_sex, sizeof(char), 1, file);
 
-        if (func_sex == sex)
+        if (id != 0 && func_sex == sex)
         {
             fseek(file, offset + SALARIO, SEEK_SET);
             fread(&salary, sizeof(float), 1, file);
@@ -239,7 +265,7 @@ void averageSalaryForSex()
 
 void dataToText()
 {
-    FILE * text;
+    FILE *text;
     char name[256];
     unsigned int id = 0;
     int offset = 0, end_of_file = 0;
@@ -249,7 +275,7 @@ void dataToText()
     if ((text = fopen(name, "w+")) == NULL)
     {
         printf("Erro ao abrir/criar o arquivo.\n");
-        return ;
+        return;
     }
 
     /* Size of file */
@@ -259,7 +285,7 @@ void dataToText()
     /* First value */
     fseek(file, 0, SEEK_SET);
     offset = ftell(file);
-    
+
     while (offset < end_of_file)
     {
         fread(&id, sizeof(unsigned int), 1, file);
@@ -272,7 +298,7 @@ void dataToText()
             fseek(file, offset, SEEK_SET);
             fread(&aux, sizeof(funcionario), 1, file);
 
-            sprintf(line, "Id: %d - Nome: %s - Sexo: %c - Salario: %f\n", \
+            sprintf(line, "Id: %d - Nome: %s - Sexo: %c - Salario: %f\n",
                     aux.id, aux.nome, aux.sexo, aux.salario);
 
             fputs(line, text);
@@ -285,16 +311,16 @@ void dataToText()
     printf("Dados exportados com sucesso.\n");
 }
 
-void compress(char * arq)
+void compress(char *arq)
 {
-    FILE * new_file;
+    FILE *new_file;
     funcionario aux;
     int offset = 0, end_of_file = 0;
 
     if ((new_file = fopen("file_aux", "w+b")) == NULL)
     {
         printf("Erro ao abrir/criar o arquivo.\n");
-        return ;
+        return;
     }
 
     /* Size of file */
@@ -303,15 +329,13 @@ void compress(char * arq)
 
     fseek(file, 0, SEEK_SET);
     offset = ftell(file);
-    
+
     while (offset < end_of_file)
     {
         fread(&aux, sizeof(funcionario), 1, file);
 
         if (aux.id)
         {
-            printf("Id: %d - Nome: %s - Sexo: %c - Salario: %f\n", \
-                    aux.id, aux.nome, aux.sexo, aux.salario);
             fwrite(&aux, sizeof(funcionario), 1, new_file);
         }
 
