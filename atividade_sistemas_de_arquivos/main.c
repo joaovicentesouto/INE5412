@@ -36,7 +36,7 @@ FILE *file;
 
 /* Foward definitions: operations */
 void insert();
-void delete ();
+void delete();
 void averageSalaryForSex();
 void dataToText();
 void compress(char *arq);
@@ -66,28 +66,28 @@ int main(int argc, char *argv[])
 
     switch (option)
     {
-    case 0:
-        insert();
-        break;
+        case 0:
+            insert();
+            break;
 
-    case 1:
-        delete ();
-        break;
+        case 1:
+            delete ();
+            break;
 
-    case 2:
-        averageSalaryForSex();
-        break;
+        case 2:
+            averageSalaryForSex();
+            break;
 
-    case 3:
-        dataToText();
-        break;
+        case 3:
+            dataToText();
+            break;
 
-    case 4:
-        compress(argv[1]);
-        break;
+        case 4:
+            compress(argv[1]);
+            break;
 
-    default:
-        printf("Opções:\n0: inserir\n1:remover\n2:média\n3:texto\n4:comprimir\n");
+        default:
+            printf("Opções:\n0: inserir\n1:remover\n2:média\n3:texto\n4:comprimir\n");
     }
 
     if (option != 4)
@@ -258,7 +258,7 @@ void averageSalaryForSex()
         fseek(file, offset + FUNCIONARIO, SEEK_SET);
         offset = ftell(file);
     }
-    
+
     float average = amount > 0? sum / amount : 0;
     printf("Média dos salários do sexo %c: %f\n", sex, average);
 }
